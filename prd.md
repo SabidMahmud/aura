@@ -51,7 +51,7 @@ We are building for individuals who are proactive about personal growth and well
 ## **5. Goals & Success Metrics**
 
 Our primary goal is to provide genuine, actionable insights that lead to user retention.
-
+<!--  
 | Goal | Metric | Success Target (First 3 Months) |
 | :--- | :--- | :--- |
 | **User Engagement** | Daily Active Users (DAU) / Monthly Active Users (MAU) Ratio | > 20% |
@@ -60,6 +60,7 @@ Our primary goal is to provide genuine, actionable insights that lead to user re
 | | Day 30 (D30) Retention Rate | > 10% |
 | **Product Adoption**| Onboarding Completion Rate | > 90% |
 | | Percentage of users receiving their first insight | > 75% (of users active for 14+ days) |
+ -->
 
 <!-- ## **6. Features & Requirements (V1.0)**
 
@@ -167,6 +168,7 @@ This section outlines the core features and requirements for the initial release
 * **1.3.6:** Upon successful account creation, a new User record is created, the user is automatically logged in, and they are redirected to the `/onboarding` flow.
 
 * **1.3.7:** The main login page must also provide fields for returning users to log in with their registered email and password.
+
 ---
 
 ### **Epic 2: Daily Data Logging**
