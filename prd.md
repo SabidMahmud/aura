@@ -61,7 +61,7 @@ Our primary goal is to provide genuine, actionable insights that lead to user re
 | **Product Adoption**| Onboarding Completion Rate | > 90% |
 | | Percentage of users receiving their first insight | > 75% (of users active for 14+ days) |
 
-## **6. Features & Requirements (V1.0)**
+<!-- ## **6. Features & Requirements (V1.0)**
 
 ### **Epic 1: User Accounts & Onboarding**
 
@@ -99,7 +99,146 @@ Our primary goal is to provide genuine, actionable insights that lead to user re
     * **Requirement:** A dedicated `/insights` page that displays a list of insight cards.
 * **User Story 4.2:** As a user, I want to see the data behind an insight so I can trust the conclusion.
     * **Requirement:** Each insight card will be expandable or clickable.
-    * **Requirement:** Upon expansion, a simple chart (e.g., a bar chart from Recharts) will visualize the data comparison (e.g., average Mood on days with vs. without the tag).
+    * **Requirement:** Upon expansion, a simple chart (e.g., a bar chart from Recharts) will visualize the data comparison (e.g., average Mood on days with vs. without the tag). -->
+
+---
+
+## **Product Requirements and Features: Personal Pattern Analyzer ("Aura") v1.0**
+
+This section outlines the core features and requirements for the initial release of Aura.
+
+### **Epic 1: User Authentication & Onboarding**
+* **Goal:** To provide a secure and seamless entry point for users and to personalize their experience from the start.
+
+**User Story 1.1: User Sign-up and Login**
+> **As a** new user, **I want to** sign up and log in quickly using a third-party provider **so that** I can access the application without creating a new password.
+
+**Acceptance Criteria:**
+* **1.1.1:** The landing page presents a single "Continue with Google" sign-in option.
+* **1.1.2:** WHEN a user successfully authenticates with Google, THEN a corresponding `User` record is created in the database.
+* **1.1.3:** New users are automatically redirected to the `/onboarding` flow after their first successful login.
+* **1.1.4:** Returning users are automatically redirected to the main `/dashboard`.
+* **1.1.5:** All application pages (except the landing page) must be protected and require authentication.
+
+**User Story 1.2: First-Time User Onboarding**
+> **As a** new user, **I want to** be guided through a setup process **so that** I can define the personal metrics and actions I want to track.
+
+**Acceptance Criteria:**
+* **1.2.1:** The onboarding flow consists of two distinct steps: defining `Metrics` and defining `Tags`.
+* **1.2.2:** In the "Metrics" step, the user can create and name custom outcome metrics (e.g., "Mood", "Energy").
+* **1.2.3:** In the "Tags" step, the user can create and name custom action tags (e.g., "Workout", "Read a Book").
+* **1.2.4:** The user can add and remove multiple Metrics and Tags before finalizing.
+* **1.2.5:** WHEN the setup is complete, THEN the new `Metrics` and `Tags` are saved to the database, associated with the `userId`, and the user is redirected to the `/dashboard`.
+
+**User Story 1.3: User Sign-up with Email and Password**
+
+> **As a** new user, **I want to** sign up with my email and a secure password **so that** I can create a dedicated account for this application without linking a third-party service.
+
+**Acceptance Criteria:**
+
+* **1.3.1:** The main login page must display a clear link or button, such as `Sign up with email`.
+
+* **1.3.2:** Clicking the link navigates the user to a dedicated sign-up form (`/signup`).
+
+* **1.3.3:** The sign-up form must contain the following fields:
+
+    * Username
+
+    * Email Address
+
+    * Password (with input type `password`)
+
+    * Confirm Password (with input type `password`)
+
+* **1.3.4:** Form submission must have both client-side and server-side validation with clear error messages for the following conditions:
+
+    * All fields are required.
+
+    * Username must be unique and meet length/character requirements (e.g., min 3 characters, `alphanumeric`).
+
+    * Email must be a valid format and must not already exist in the database.
+
+    * Password must meet minimum security requirements (e.g., 8+ characters, contains at least one number).
+
+    * "`Confirm Password`" field must match the "`Password`" field.
+
+* **1.3.5:** WHEN the form is submitted with valid data, THEN the password must be securely hashed before being stored in the database. Plain text passwords must never be stored.
+
+* **1.3.6:** Upon successful account creation, a new User record is created, the user is automatically logged in, and they are redirected to the `/onboarding` flow.
+
+* **1.3.7:** The main login page must also provide fields for returning users to log in with their registered email and password.
+---
+
+### **Epic 2: Daily Data Logging**
+* **Goal:** To provide a frictionless, multi-modal interface for users to log their daily data with minimal effort.
+
+**User Story 2.1: One-Click Action Logging**
+> **As a** user, **I want to** log a predefined action with a single click **so that** I can record my habits quickly throughout the day.
+
+**Acceptance Criteria:**
+* **2.1.1:** The `/dashboard` displays all user-defined `Tags` as clickable buttons.
+* **2.1.2:** WHEN a user clicks a `Tag` button, THEN a new `ActionLog` record is created with the correct `tagId` and `userId`.
+* **2.1.3:** The UI provides immediate visual feedback that the action has been successfully logged (e.g., button state change, toast notification).
+
+**User Story 2.2: AI-Powered Journal Logging**
+> **As a** user, **I want to** write a journal entry in natural language **so that** the app can automatically identify and log my actions for me.
+
+**Acceptance Criteria:**
+* **2.2.1:** The `/dashboard` contains a `textarea` for journal input.
+* **2.2.2:** WHEN the user submits a journal entry, THEN the text is sent to a third-party AI API (e.g., OpenAI).
+* **2.2.3:** The AI API is prompted to extract tags from the text based on the user's personal list of `Tags`.
+* **2.2.4:** The system correctly parses the AI's JSON response and creates `ActionLog` records for each extracted tag.
+
+**User Story 2.3: Daily Outcome Rating**
+> **As a** user, **I want to** rate my day across my personal metrics **so that** the system can correlate my actions with my outcomes.
+
+**Acceptance Criteria:**
+* **2.3.1:** The `/dashboard` displays a slider (or similar 1-5 rating input) for each user-defined `Metric`.
+* **2.3.2:** WHEN the user submits their ratings, THEN a `DailyRating` record is created for the current date, containing the value for each metric.
+
+---
+
+### **Epic 3: Automated Insight Engine**
+* **Goal:** To process user data in the background to automatically discover and summarize meaningful patterns.
+
+**User Story 3.1: Backend Pattern Analysis**
+> **As a** system, **I want to** run a daily analysis of user data **so that** I can identify statistically significant correlations between actions and outcomes.
+
+**Acceptance Criteria:**
+* **3.1.1:** A scheduled (cron) job is configured to run once every 24 hours.
+* **3.1.2:** The job processes data only for users with a sufficient amount of data (e.g., >14 days of logs).
+* **3.1.3:** The analysis logic correctly compares the average metric ratings on days a specific tag was logged versus days it was not.
+* **3.1.4:** WHEN a statistically significant correlation is found, THEN a new `Insight` record is created in the database.
+
+**User Story 3.2: AI Insight Summarization**
+> **As a** system, **I want to** use AI to translate statistical findings into natural language **so that** the insights are encouraging and easy for the user to understand.
+
+**Acceptance Criteria:**
+* **3.2.1:** After a correlation is identified, its structured data (e.g., `{tag: 'Workout', metric: 'Energy', effect: 'positive'}`) is sent to an AI API.
+* **3.2.2:** The AI is prompted to generate a short, insightful, human-readable summary.
+* **3.2.3:** The AI's text response is saved as the `content` of the `Insight` record.
+
+---
+
+### **Epic 4: Insights Dashboard**
+* **Goal:** To present the generated insights to the user in a clear, trustworthy, and visually appealing manner.
+
+**User Story 4.1: View Generated Insights**
+> **As a** user, **I want to** see all my personalized insights in one place **so that** I can reflect on my behavior patterns.
+
+**Acceptance Criteria:**
+* **4.1.1:** A dedicated `/patterns` page fetches and displays all `Insight` records for the logged-in user.
+* **4.1.2:** Insights are displayed as a list of individual cards.
+* **4.1.3:** If no insights have been generated yet, the page displays a clear and motivating "empty state" message.
+
+**User Story 4.2: Explore Data Behind an Insight**
+> **As a** user, **I want to** see the data behind an insight **so that** I can understand and trust the conclusion.
+
+**Acceptance Criteria:**
+* **4.2.1:** Each insight card is expandable/clickable.
+* **4.2.2:** WHEN a card is expanded, THEN a chart (e.g., a bar chart) is displayed.
+* **4.2.3:** The chart accurately visualizes the data comparison supporting the insight (e.g., "Average Mood on days with workout" vs. "Average Mood on days without workout").
+* **4.2.4:** The user can collapse the expanded view to return to the main list.
 
 ## **7. User Flow / Journey**
 
