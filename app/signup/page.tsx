@@ -88,7 +88,7 @@ export default function SignUpPage() {
             </p>
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-4" method='POST' onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label
                 htmlFor="username"

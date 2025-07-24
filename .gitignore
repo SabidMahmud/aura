@@ -2,13 +2,12 @@ js_learn/
 node_modules/
 .env
 .env.local
-.next/
 
 # Ignore build output
 out/
 dist/
 build/
 next/
-.next/
+.next 
 
 

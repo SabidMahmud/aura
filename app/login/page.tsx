@@ -79,7 +79,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" method="POST" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label
                 htmlFor="email"
@@ -107,7 +107,7 @@ export default function LoginPage() {
                     >
                         Password
                     </label>
-                    <Link href="#" className="text-sm font-medium text-gray-800 hover:text-gray-900">
+                    <Link href="/forgot-password" className="text-sm font-medium text-gray-800 hover:text-gray-900">
                         Forgot password?
                     </Link>
                 </div>
