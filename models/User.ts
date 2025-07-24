@@ -20,7 +20,7 @@ export interface IUser extends Document {
 }
 
 // User schema definition
-const userSchema = new Schema<IUser>({
+const userSchema = new Schema<IUser>({ 
   // Authentication fields
   email: {
     type: String,
@@ -103,9 +103,6 @@ const userSchema = new Schema<IUser>({
 });
 
 // Indexes for performance
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
-userSchema.index({ username: 1 });
 userSchema.index({ createdAt: -1 });
 
 // Virtual for getting user's full display name
