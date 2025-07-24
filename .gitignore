@@ -1,3 +1,6 @@
 js_learn/
 node_modules/
 .env
+.next/
+
+
