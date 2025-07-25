@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, TrendingUp, Target, Menu, X } from 'lucide-react';
-import GetStartedButton from '../components/GetStartedButton';
-import Navbar from '../components/NavBar';
+import GetStartedButton from '@/components/ui/GetStartedButton';
+import Navbar from '@/components/ui/NavBar';
 
 export default function AuraLandingPage() {
   // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -9,7 +9,7 @@ export default function AuraLandingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       
-      <Navbar />
+      <Navbar/>
 
       {/* Hero Section */}
       <section className="py-12 px-6">
