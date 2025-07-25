@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { signupUser } from '@/lib/actions/user';
 
 // A simple placeholder for the Google icon
 const GoogleIcon = () => (
@@ -19,43 +20,30 @@ const AuraLogo = () => (
 );
 
 export default function SignUpPage() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (formData: FormData) => {
     setError(null);
+    setLoading(true);
+
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const result = await signupUser(formData);
 
-    try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, email, password }),
-      });
-
-      if (res.ok) {
-        // Redirect to onboarding
+    if (result.success) {
+      setTimeout(() => {
         window.location.href = '/onboarding';
-      } else {
-        const data = await res.json();
-        setError(data.message || 'Something went wrong');
-      }
-    } catch (error) {
-      setError('An unexpected error occurred.');
-    } finally {
+      }, 300); // 300ms delay
+    } else {
+      setError(result.message || 'Something went wrong');
       setLoading(false);
     }
   };
@@ -88,7 +76,7 @@ export default function SignUpPage() {
             </p>
           </div>
 
-          <form className="space-y-4" method='POST' onSubmit={handleSubmit}>
+          <form className="space-y-4" action={handleSubmit}>
             <div className="space-y-2">
               <label
                 htmlFor="username"
@@ -102,8 +90,6 @@ export default function SignUpPage() {
                 type="text"
                 placeholder="Choose a username"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-gray-900 focus:outline-none focus:ring-gray-900 sm:text-sm"
               />
             </div>
@@ -121,8 +107,6 @@ export default function SignUpPage() {
                 type="email"
                 placeholder="Enter your email"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-gray-900 focus:outline-none focus:ring-gray-900 sm:text-sm"
               />
             </div>
@@ -140,27 +124,23 @@ export default function SignUpPage() {
                 type="password"
                 placeholder="Create a password"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-gray-900 focus:outline-none focus:ring-gray-900 sm:text-sm"
               />
             </div>
 
             <div className="space-y-2">
               <label
-                htmlFor="confirm-password"
+                htmlFor="confirmPassword"
                 className="block text-sm font-medium text-gray-700"
               >
                 Confirm Password
               </label>
               <input
-                id="confirm-password"
-                name="confirm-password"
+                id="confirmPassword"
+                name="confirmPassword"
                 type="password"
                 placeholder="Confirm your password"
                 required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
                 className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-gray-900 focus:outline-none focus:ring-gray-900 sm:text-sm"
               />
             </div>
@@ -177,7 +157,17 @@ export default function SignUpPage() {
                 disabled={loading}
                 className="mt-4 flex w-full justify-center rounded-md border border-transparent bg-gray-900 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:opacity-50"
               >
-                {loading ? 'Creating account...' : 'Create account'}
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating account...
+                  </span>
+                ) : (
+                  'Create account'
+                )}
               </button>
             </div>
 
