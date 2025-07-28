@@ -1,38 +1,27 @@
-// src/app/(authentication)/onboarding/page.tsx
-'use client'; // Add this directive for client components
+// app/onboarding/page.tsx
+'use client';
 
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation'; // Changed from 'next/router'
-import { useEffect } from 'react';
-import OnboardingFlow from '@/components/onboarding/Onboardingflow';
 
 export default function OnboardingPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
 
-  useEffect(() => {
-    // Redirect to login if not authenticated
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-    
-    // If user has already completed onboarding, redirect to dashboard
-    if (session?.user?.isOnboardingComplete) {
-      router.push('/profile');
-    }
-  }, [session, status, router]);
-
+  // A very simple component to show the session status
   if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
+    return <h1>Loading session...</h1>;
   }
 
-  if (!session) {
-    return null;
-  }
-
-  return <OnboardingFlow />;
+  // Render the session details once loaded
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'monospace', fontSize: '1.2rem' }}>
+      <h1>Onboarding Page (Debug Mode)</h1>
+      <hr />
+      <h2>Session Status: {status}</h2>
+      <h3>Is `isOnboardingComplete`: {String(session?.user?.isOnboardingComplete)}</h3>
+      <hr />
+      <pre>
+        {JSON.stringify(session, null, 2)}
+      </pre>
+    </div>
+  );
 }

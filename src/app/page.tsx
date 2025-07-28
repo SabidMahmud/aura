@@ -49,6 +49,13 @@ export default function Home() {
           >
             Read our docs
           </a>
+
+          <a
+            className="rounded-full border border-solid border-black/[0.08]"
+            href='./welcome/page.tsx'
+          >
+            Welcome page
+          </a>
         </div>
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">

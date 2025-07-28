@@ -2,17 +2,50 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { MongoDBAdapter } from '@auth/mongodb-adapter';
-import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
-import User from '@/models/User';
 import dbConnect from '@/lib/db';
+import User from '@/models/User';
 
-const client = new MongoClient(process.env.MONGODB_URI!);
-const clientPromise = client.connect();
+// Correct type declarations to allow `null` for all optional fields
+declare module 'next-auth' {
+  interface Profile {
+    picture?: string;
+  }
+
+  interface User {
+    id: string;
+    email: string;
+    name?: string | null;
+    image?: string | null;
+    username?: string | null;
+    isOnboardingComplete?: boolean;
+    timezone?: string | null;
+  }
+
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+      name?: string | null;
+      image?: string | null;
+      username?: string | null;
+      isOnboardingComplete?: boolean;
+      timezone?: string | null;
+    };
+  }
+
+  interface JWT {
+    id: string;
+    email: string;
+    name?: string | null;
+    image?: string | null;
+    username?: string | null;
+    isOnboardingComplete?: boolean;
+    timezone?: string | null;
+  }
+}
 
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -24,150 +57,147 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
+
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
         try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
+          }
+
           await dbConnect();
-          
-          const user = await User.findOne({ 
-            email: credentials.email.toLowerCase() 
-          }).select('+password');
-          
-          if (!user || !user.password) {
+          const user = await User.findOne({ email: credentials.email });
+          if (!user || !user.password) { // Also check if user.password exists
             return null;
           }
 
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password, 
-            user.password
-          );
-
-          if (!isPasswordValid) {
+          const isValidPassword = await bcrypt.compare(credentials.password, user.password);
+          if (!isValidPassword) {
             return null;
           }
 
-          // Update last login
-          await User.findByIdAndUpdate(user._id, {
-            lastLoginAt: new Date()
-          });
+          user.lastLoginAt = new Date();
+          await user.save();
 
           return {
             id: user._id.toString(),
             email: user.email,
-            name: user.name || user.username,
-            image: user.avatar,
+            name: user.name ?? null,
+            image: user.avatar ?? null,
+            username: user.username ?? null,
+            isOnboardingComplete: user.isOnboardingComplete ?? false,
+            timezone: user.timezone ?? null,
           };
+
         } catch (error) {
-          console.error('Auth error:', error);
+          // Log the error for debugging purposes
+          console.error("Authorize Error:", error);
+          // Return null to indicate failure
           return null;
         }
       }
     })
   ],
+
+  callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === 'google') {
+        await dbConnect();
+
+        try {
+          const existingUser = await User.findOne({ email: user.email });
+
+          if (existingUser) {
+            if (!existingUser.googleId) {
+              existingUser.googleId = user.id;
+            }
+            existingUser.lastLoginAt = new Date();
+            await existingUser.save();
+
+            user.id = existingUser._id.toString();
+            user.isOnboardingComplete = existingUser.isOnboardingComplete;
+            user.timezone = existingUser.timezone;
+            user.username = existingUser.username;
+            user.image = existingUser.avatar ?? user.image;
+          } else {
+            const newUser = await User.create({
+              email: user.email,
+              name: user.name,
+              googleId: user.id,
+              avatar: profile?.picture ?? user.image,
+              lastLoginAt: new Date(),
+              timezone: 'UTC',
+              isOnboardingComplete: false
+            });
+
+            user.id = newUser._id.toString();
+            user.isOnboardingComplete = false;
+            user.timezone = 'UTC';
+            user.image = newUser.avatar ?? null;
+          }
+
+          return true;
+        } catch (error) {
+          console.error('Error during Google sign in:', error);
+          return false;
+        }
+      }
+
+      return true;
+    },
+
+    async jwt({ token, user, trigger, session }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name ?? null;
+        token.image = user.image ?? null;
+        // Correctly assign null if the value is missing
+        token.username = user.username ?? "";
+        token.isOnboardingComplete = user.isOnboardingComplete ?? false;
+        // Correctly assign null if the value is missing
+        token.timezone = user.timezone ?? "";
+      }
+
+      if (trigger === 'update' && session) {
+        await dbConnect();
+        const dbUser = await User.findById(token.id);
+        if (dbUser) {
+          token.name = dbUser.name ?? null;
+          token.username = dbUser.username ?? null;
+          token.isOnboardingComplete = dbUser.isOnboardingComplete ?? false;
+          token.timezone = dbUser.timezone ?? null;
+          token.image = dbUser.avatar ?? null;
+        }
+      }
+
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.email = token.email ?? ''; // Fallback to empty string
+        session.user.name = token.name ?? null; // Fallback to null
+        session.user.image = typeof token.image === 'string' ? token.image : null;
+        session.user.username = token.username ?? null; // Fallback to null
+        session.user.isOnboardingComplete = token.isOnboardingComplete ?? false; // Fallback to false
+        session.user.timezone = token.timezone ?? null; // Fallback to null
+      }
+      return session;
+    }
+  },
+
+  pages: {
+    signIn: '/login',
+    newUser: '/register',
+  },
+
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === 'google') {
-        try {
-          await dbConnect();
-          
-          // Check if user exists
-          const existingUser = await User.findOne({ 
-            $or: [
-              { email: user.email },
-              { googleId: account.providerAccountId }
-            ]
-          });
 
-          if (existingUser) {
-            // Update existing user with Google info if not already set
-            if (!existingUser.googleId) {
-              existingUser.googleId = account.providerAccountId;
-              existingUser.avatar = user.image;
-              existingUser.name = user.name;
-              existingUser.lastLoginAt = new Date();
-              await existingUser.save();
-            } else {
-              // Just update last login
-              await User.findByIdAndUpdate(existingUser._id, {
-                lastLoginAt: new Date()
-              });
-            }
-          } else {
-            // Create new user
-            await User.create({
-              email: user.email,
-              googleId: account.providerAccountId,
-              name: user.name,
-              avatar: user.image,
-              isOnboardingComplete: false,
-              lastLoginAt: new Date(),
-            });
-          }
-        } catch (error) {
-          console.error('Google sign in error:', error);
-          return false;
-        }
-      }
-      return true;
-    },
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id;
-      }
-      
-      // Fetch fresh user data on each token refresh
-      if (token.email) {
-        try {
-          await dbConnect();
-          const dbUser = await User.findOne({ email: token.email });
-          if (dbUser) {
-            token.isOnboardingComplete = dbUser.isOnboardingComplete;
-            token.username = dbUser.username;
-            token.timezone = dbUser.timezone;
-          }
-        } catch (error) {
-          console.error('JWT callback error:', error);
-        }
-      }
-      
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.isOnboardingComplete = token.isOnboardingComplete as boolean;
-        session.user.username = token.username as string;
-        session.user.timezone = token.timezone as string;
-      }
-      return session;
-    },
-    async redirect({ url, baseUrl }) {
-      // Redirect to profile after successful login
-      if (url.startsWith('/')) return `${baseUrl}${url}`;
-      if (new URL(url).origin === baseUrl) return url;
-      return `${baseUrl}/profile`;
-    }
-  },
-  pages: {
-    signIn: '/login',
-    error: '/auth/error',
-  },
-  events: {
-    async signIn({ user, account }) {
-      console.log(`User ${user.email} signed in with ${account?.provider}`);
-    },
-    async signOut({  }) {
-      console.log(`User signed out`);
-    }
-  },
-  debug: process.env.NODE_ENV === 'development',
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
