@@ -1,83 +1,64 @@
 // middleware.ts
-import { withAuth } from 'next-auth/middleware';
-import { NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const isAuth = !!token;
-    const isAuthPage = req.nextUrl.pathname.startsWith('/login') || 
-                      req.nextUrl.pathname.startsWith('/signup');
-    const isOnboardingPage = req.nextUrl.pathname.startsWith('/onboarding');
-    const isPublicPage = req.nextUrl.pathname === '/' || 
-                        req.nextUrl.pathname.startsWith('/public') ||
-                        req.nextUrl.pathname.startsWith('/api/auth');
+export async function middleware(req: NextRequest) {
+  const token = await getToken({ req });
+  const { pathname } = req.nextUrl;
+  const isAuthenticated = !!token;
 
-    // Allow public pages and API routes
-    if (isPublicPage) {
-      return NextResponse.next();
+  // Define your auth routes and protected routes
+  const authRoutes = ['/login', '/signup', '/register'];
+  const protectedRoutes = ['/dashboard', '/profile', '/settings'];
+
+  // --- LOGIC FOR AUTHENTICATED USERS ---
+  if (isAuthenticated) {
+    // Rule 1: If logged in, redirect from auth pages to the dashboard.
+    if (authRoutes.includes(pathname)) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
-    // Redirect authenticated users away from auth pages
-    if (isAuthPage && isAuth) {
-      // Check if onboarding is complete
-      if (!token?.isOnboardingComplete) {
-        return NextResponse.redirect(new URL('/onboarding', req.url));
-      }
-      return NextResponse.redirect(new URL('/profile', req.url));
+    const isOnboardingComplete = token.isOnboardingComplete as boolean;
+
+    // Rule 2: If onboarding is not complete, force user to the onboarding page.
+    // (but don't redirect if they are already there).
+    if (!isOnboardingComplete && !pathname.startsWith('/onboarding')) {
+      return NextResponse.redirect(new URL('/onboarding', req.url));
     }
 
-    // Redirect unauthenticated users to login
-    if (!isAuth && !isAuthPage) {
-      const loginUrl = new URL('/login', req.url);
-      // Add callback URL for redirect after login
-      loginUrl.searchParams.set('callbackUrl', req.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
+    // Rule 3: If onboarding IS complete, prevent them from accessing the onboarding page again.
+    if (isOnboardingComplete && pathname.startsWith('/onboarding')) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
-    // Handle onboarding flow for authenticated users
-    if (isAuth && !isOnboardingPage) {
-      // If user is authenticated but hasn't completed onboarding
-      if (!token?.isOnboardingComplete && req.nextUrl.pathname !== '/onboarding') {
-        return NextResponse.redirect(new URL('/onboarding', req.url));
-      }
-      
-      // If user has completed onboarding but tries to access onboarding page
-      if (token?.isOnboardingComplete && req.nextUrl.pathname === '/onboarding') {
-        return NextResponse.redirect(new URL('/profile', req.url));
-      }
-    }
-
+    // If all checks pass, allow the request.
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        // Allow access to public routes without authentication
-        const isPublicRoute = req.nextUrl.pathname === '/' || 
-                             req.nextUrl.pathname.startsWith('/public') ||
-                             req.nextUrl.pathname.startsWith('/api/auth') ||
-                             req.nextUrl.pathname.startsWith('/login') ||
-                             req.nextUrl.pathname.startsWith('/signup');
-        
-        if (isPublicRoute) return true;
-        
-        // For protected routes, require authentication
-        return !!token;
-      },
-    },
   }
-);
 
-// Configure which routes to run middleware on
+  // --- LOGIC FOR UNAUTHENTICATED USERS ---
+  if (!isAuthenticated) {
+    // If an unauthenticated user tries to access a protected route OR the onboarding page,
+    // redirect them to the login page.
+    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+    if (isProtectedRoute || pathname.startsWith('/onboarding')) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+  }
+
+  // Allow the request to proceed for all other cases (e.g., public homepage).
+  return NextResponse.next();
+}
+
+// --- CONFIG ---
 export const config = {
   matcher: [
-    // Match all request paths except for the ones starting with:
-    // - api (API routes)
-    // - _next/static (static files)
-    // - _next/image (image optimization files)
-    // - favicon.ico (favicon file)
-    // - public folder
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
