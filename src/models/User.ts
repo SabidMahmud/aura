@@ -1,3 +1,4 @@
+// models/User.ts
 import mongoose, { Document, Schema } from 'mongoose';
 
 // TypeScript interface for User document
@@ -8,6 +9,9 @@ export interface IUser extends Document {
   googleId?: string;
   name?: string;
   avatar?: string;
+  goals?: string[]; // Added goals field
+  metrics?: string[];
+  activities?: string[];
   isOnboardingComplete: boolean;
   timezone: string;
   isActive: boolean;
@@ -35,6 +39,7 @@ const userSchema = new Schema<IUser>({
       return !this.googleId; // Required only if not using OAuth
     },
     unique: true,
+    sparse: true, // Allow null values but enforce uniqueness when not null
     minlength: 3,
     trim: true,
     match: /^[a-zA-Z0-9_]+$/
@@ -62,6 +67,23 @@ const userSchema = new Schema<IUser>({
   avatar: {
     type: String // URL to profile image
   },
+  
+  // Onboarding data fields
+  goals: [{
+    type: String,
+    trim: true,
+    maxlength: 100
+  }],
+  metrics: [{
+    type: String,
+    trim: true,
+    maxlength: 50
+  }],
+  activities: [{
+    type: String,
+    trim: true,
+    maxlength: 100
+  }],
   
   // Onboarding status
   isOnboardingComplete: {
@@ -102,8 +124,9 @@ const userSchema = new Schema<IUser>({
   }
 });
 
-// Indexes for performance
+// Indexes for performance - REMOVED duplicates (email, username, googleId already have unique indexes)
 userSchema.index({ createdAt: -1 });
+userSchema.index({ isOnboardingComplete: 1 });
 
 // Virtual for getting user's full display name
 userSchema.virtual('displayName').get(function(this: IUser) {
