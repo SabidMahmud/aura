@@ -11,9 +11,15 @@ export async function middleware(req: NextRequest) {
   // ✅ ADD THESE LOGS
   console.log('--- MIDDLEWARE RUNNING ---');
   console.log('Request Path:', pathname);
-  console.log('Token Received:', token); // This will likely be null
-  console.log('Is Authenticated?:', isAuthenticated);
-
+  // console.log('Token Received:', token); // This will likely be null
+  // console.log('Is Authenticated?:', isAuthenticated);
+  // Add this right after your existing console.logs in middleware
+  if (token) {
+    console.log('🔍 MIDDLEWARE TOKEN DEBUG:', {
+      isOnboardingComplete: token.isOnboardingComplete,
+      tokenId: token.id,
+    });
+  }
 
   // Define your auth routes and protected routes
   const authRoutes = ['/login', '/signup', '/register'];

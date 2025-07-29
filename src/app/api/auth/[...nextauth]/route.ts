@@ -145,20 +145,20 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
-    // jwt callback
+    // jwt callback - FIXED VERSION
     async jwt({ token, user, trigger, session }) {
       // If it's the initial sign-in, the 'user' object is available.
       // We use its ID to fetch the definitive user data from the DB.
+      console.log('🔥 JWT CALLBACK TRIGGERED');
+      console.log('Trigger:', trigger);
+      console.log('Has user object:', !!user);
+      console.log('Token ID:', token.id);
+      console.log('Current token onboarding status:', token.isOnboardingComplete);
+
       if (user) {
+        console.log('🔥 Initial login - fetching user from DB');
         await dbConnect();
         const dbUser = await User.findById(user.id);
-
-        if (dbUser) {
-          // console.log('Fresh DB user status in JWT:', dbUser.isOnboardingComplete);
-          token.isOnboardingComplete = dbUser.isOnboardingComplete; // This is the crucial line
-          // console.log('Token onboarding status AFTER assignment:', token.isOnboardingComplete); 
-    
-        }
 
         if (dbUser) {
           token.id = dbUser._id.toString();
@@ -166,27 +166,30 @@ export const authOptions: NextAuthOptions = {
           token.name = dbUser.name ?? null;
           token.image = dbUser.avatar ?? null;
           token.username = dbUser.username ?? null;
-          // ✅ This is the crucial change: Use the fresh data from the database
           token.isOnboardingComplete = dbUser.isOnboardingComplete;
           token.timezone = dbUser.timezone ?? null;
         }
       }
 
-      // This part for updating the session 
-      if (trigger === 'update' && session) {
+      // 🚨 FIX: This condition was too restrictive
+      // OLD: if (trigger === 'update' || (trigger === undefined && token.id && !user)) {
+      // NEW: Always fetch fresh data if we have a token.id but no user object
+      if (token.id && !user) {
+        console.log('🔥 UPDATE TRIGGER - Fetching fresh user data');
         await dbConnect();
         const dbUser = await User.findById(token.id);
         if (dbUser) {
+          // 🚨 CRITICAL: Always update ALL fields, including isOnboardingComplete
           token.name = dbUser.name ?? null;
           token.username = dbUser.username ?? null;
           token.isOnboardingComplete = dbUser.isOnboardingComplete ?? false;
           token.timezone = dbUser.timezone ?? null;
           token.image = dbUser.avatar ?? null;
+          token.email = dbUser.email; // Also update email
         }
       }
 
-      // console.log('Final token object being returned:', token); 
-
+      console.log('🔥 Final token onboarding status:', token.isOnboardingComplete);
       return token;
     },
 

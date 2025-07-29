@@ -8,27 +8,28 @@ import Tag from '@/models/Tag';
 import dbConnect from '@/lib/db';
 
 // GET - Check onboarding status
-export async function GET(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Unauthorized' 
+      return NextResponse.json({
+        success: false,
+        message: 'Unauthorized'
       }, { status: 401 });
     }
 
     await dbConnect();
 
-    const user = await User.findOne({ 
-      email: session.user.email 
+    const user = await User.findOne({
+      email: session.user.email
     }).select('timezone goals activities isOnboardingComplete onboardingCompleted');
 
     if (!user) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'User not found' 
+      return NextResponse.json({
+        success: false,
+        message: 'User not found'
       }, { status: 404 });
     }
 
@@ -55,11 +56,11 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Unauthorized' 
+      return NextResponse.json({
+        success: false,
+        message: 'Unauthorized'
       }, { status: 401 });
     }
 
@@ -68,15 +69,15 @@ export async function PUT(request: NextRequest) {
 
     // Validate input data
     const updateData: any = {};
-    
+
     if (timezone && typeof timezone === 'string') {
       updateData.timezone = timezone;
     }
-    
+
     if (goals && Array.isArray(goals)) {
       updateData.goals = goals.filter(goal => typeof goal === 'string' && goal.trim());
     }
-    
+
     if (activities && Array.isArray(activities)) {
       updateData.activities = activities.filter(activity => typeof activity === 'string' && activity.trim());
     }
@@ -97,9 +98,9 @@ export async function PUT(request: NextRequest) {
     );
 
     if (!updatedUser) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'User not found' 
+      return NextResponse.json({
+        success: false,
+        message: 'User not found'
       }, { status: 404 });
     }
 
@@ -126,11 +127,11 @@ export async function PUT(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Unauthorized' 
+      return NextResponse.json({
+        success: false,
+        message: 'Unauthorized'
       }, { status: 401 });
     }
 
@@ -147,14 +148,17 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    // Start a transaction to ensure data consistency
-    const session_db = await User.startSession();
-    
+    // Store the user email to avoid scope conflicts
+    const userEmail = session.user.email;
+
+    // Start a MongoDB transaction
+    const mongoSession = await User.startSession();
+
     try {
-      await session_db.withTransaction(async () => {
+      await mongoSession.withTransaction(async () => {
         // Update user with onboarding data and mark as complete
         const updatedUser = await User.findOneAndUpdate(
-          { email: session.user.email },
+          { email: userEmail }, // Use the stored email variable
           {
             $set: {
               timezone: timezone,
@@ -164,12 +168,18 @@ export async function POST(request: NextRequest) {
               onboardingCompleted: true // Keep both for backward compatibility
             }
           },
-          { new: true, runValidators: true, session: session_db }
+          { new: true, runValidators: true, session: mongoSession }
         );
 
         if (!updatedUser) {
           throw new Error('User not found');
         }
+
+        console.log('✅ User updated successfully:', {
+          id: updatedUser._id,
+          email: updatedUser.email,
+          isOnboardingComplete: updatedUser.isOnboardingComplete
+        });
 
         // Create default metrics from activities (optional)
         const defaultMetrics = activities.slice(0, 5).map((activity: string, index: number) => ({
@@ -185,8 +195,8 @@ export async function POST(request: NextRequest) {
 
         if (defaultMetrics.length > 0) {
           // Remove existing metrics for this user to avoid duplicates
-          await Metric.deleteMany({ userId: updatedUser._id }, { session: session_db });
-          await Metric.insertMany(defaultMetrics, { session: session_db });
+          await Metric.deleteMany({ userId: updatedUser._id }, { session: mongoSession });
+          await Metric.insertMany(defaultMetrics, { session: mongoSession });
         }
 
         // Create default tags from activities
@@ -201,10 +211,14 @@ export async function POST(request: NextRequest) {
 
         if (defaultTags.length > 0) {
           // Remove existing tags for this user to avoid duplicates
-          await Tag.deleteMany({ userId: updatedUser._id }, { session: session_db });
-          await Tag.insertMany(defaultTags, { session: session_db });
+          await Tag.deleteMany({ userId: updatedUser._id }, { session: mongoSession });
+          await Tag.insertMany(defaultTags, { session: mongoSession });
         }
       });
+
+      // Verify the update worked
+      const verifyUser = await User.findOne({ email: userEmail });
+      console.log('🔍 VERIFICATION - User onboarding status after update:', verifyUser?.isOnboardingComplete);
 
       return NextResponse.json({
         success: true,
@@ -218,7 +232,7 @@ export async function POST(request: NextRequest) {
       console.error('Transaction error:', transactionError);
       throw transactionError;
     } finally {
-      await session_db.endSession();
+      await mongoSession.endSession();
     }
 
   } catch (error) {
