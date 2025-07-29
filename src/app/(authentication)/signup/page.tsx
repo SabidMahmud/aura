@@ -56,7 +56,7 @@ export default function SignupPage() {
         });
 
         if (signInResult?.ok) {
-          router.push('/onboarding');
+          router.push('/dashboard');
           router.refresh();
         } else {
           // Registration succeeded but auto-login failed
@@ -79,7 +79,7 @@ export default function SignupPage() {
     
     try {
       await signIn('google', {
-        callbackUrl: '/onboarding',
+        callbackUrl: '/dashboard',
       });
     } catch (error) {
       console.error('Google sign up error:', error);

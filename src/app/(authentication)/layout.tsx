@@ -1,8 +1,5 @@
 // app/(auth)/layout.tsx
 import { Metadata } from 'next';
-import { getServerSession } from 'next-auth/next';
-import { redirect } from 'next/navigation';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export const metadata: Metadata = {
   title: 'Aura - Authentication',
@@ -18,26 +15,21 @@ interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
-export default async function AuthLayout({ children }: AuthLayoutProps) {
-  // Check if user is already authenticated
-  const session = await getServerSession(authOptions);
-  
-  if (session) {
-    // If user is authenticated but hasn't completed onboarding
-    if (!session.user.isOnboardingComplete) {
-      redirect('/onboarding');
-    } else {
-      // If user is fully authenticated, redirect to profile
-      redirect('/profile');
-    }
-  }
-
+// This is now a simple, non-async component
+export default function AuthLayout({ children }: AuthLayoutProps) {
+  // The layout now ONLY provides the UI wrapper.
+  // All redirect logic is handled by the middleware. Here was a bug where the layout was trying to handle redirects, which is not its responsibility.
+  // The layout should not be async, as it does not need to fetch any data or perform any asynchronous operations.
+  // It simply provides a consistent UI structure for the authentication pages.
+  // This allows the authentication pages to be rendered without unnecessary delays or complications.
+  // The layout is now purely presentational, ensuring that the authentication flow is clean and straightforward
+  // without any side effects or asynchronous operations that could complicate the user experience.
+  // This change simplifies the authentication flow, making it more efficient and easier to maintain.
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Background pattern */}
       <div className="absolute inset-0 bg-white">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100" />
-        {/* Subtle grid pattern */}
         <div 
           className="absolute inset-0 opacity-5"
           style={{
@@ -47,14 +39,11 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
       </div>
 
       <div className="relative grid min-h-screen w-full lg:grid-cols-2">
-        {/* Left Panel - Hidden on mobile, visible on lg+ */}
+        {/* Left Panel */}
         <div className="hidden bg-gray-900 p-10 text-white lg:flex lg:flex-col">
-          {/* Logo */}
           <div className="flex-shrink-0">
             <AuraLogo />
           </div>
-
-          {/* Center Content */}
           <div className="my-auto space-y-6">
             <div className="space-y-4">
               <h1 className="text-4xl font-bold tracking-tighter">
@@ -64,8 +53,6 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
                 &quot;The best way to predict the future is to create it.&quot;
               </p>
             </div>
-            
-            {/* Feature highlights */}
             <div className="space-y-4 pt-8">
               <div className="flex items-center space-x-3">
                 <div className="h-2 w-2 rounded-full bg-blue-400" />
@@ -87,8 +74,6 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
               </div>
             </div>
           </div>
-
-          {/* Footer */}
           <div className="flex-shrink-0 mt-auto">
             <p className="text-sm text-gray-400">
               © 2025 Aura Inc. All rights reserved.
@@ -99,12 +84,9 @@ export default async function AuthLayout({ children }: AuthLayoutProps) {
         {/* Right Panel - Main content area */}
         <div className="flex items-center justify-center bg-white p-6 sm:p-12">
           <div className="w-full max-w-md">
-            {/* Mobile logo - only shown on small screens */}
             <div className="mb-8 text-center lg:hidden">
               <AuraLogo />
             </div>
-            
-            {/* Main content */}
             {children}
           </div>
         </div>

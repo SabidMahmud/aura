@@ -145,19 +145,34 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
+    // jwt callback
     async jwt({ token, user, trigger, session }) {
+      // If it's the initial sign-in, the 'user' object is available.
+      // We use its ID to fetch the definitive user data from the DB.
       if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name ?? null;
-        token.image = user.image ?? null;
-        // Correctly assign null if the value is missing
-        token.username = user.username ?? "";
-        token.isOnboardingComplete = user.isOnboardingComplete ?? false;
-        // Correctly assign null if the value is missing
-        token.timezone = user.timezone ?? "";
+        await dbConnect();
+        const dbUser = await User.findById(user.id);
+
+        if (dbUser) {
+          // console.log('Fresh DB user status in JWT:', dbUser.isOnboardingComplete);
+          token.isOnboardingComplete = dbUser.isOnboardingComplete; // This is the crucial line
+          // console.log('Token onboarding status AFTER assignment:', token.isOnboardingComplete); 
+    
+        }
+
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+          token.email = dbUser.email;
+          token.name = dbUser.name ?? null;
+          token.image = dbUser.avatar ?? null;
+          token.username = dbUser.username ?? null;
+          // ✅ This is the crucial change: Use the fresh data from the database
+          token.isOnboardingComplete = dbUser.isOnboardingComplete;
+          token.timezone = dbUser.timezone ?? null;
+        }
       }
 
+      // This part for updating the session 
       if (trigger === 'update' && session) {
         await dbConnect();
         const dbUser = await User.findById(token.id);
@@ -169,6 +184,8 @@ export const authOptions: NextAuthOptions = {
           token.image = dbUser.avatar ?? null;
         }
       }
+
+      // console.log('Final token object being returned:', token); 
 
       return token;
     },

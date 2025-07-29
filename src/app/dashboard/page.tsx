@@ -1,16 +1,28 @@
 'use client';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
-import { Calendar, User, TrendingUp, Activity, Brain, Utensils, Moon, BarChart3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { User, Activity, Brain, Utensils, Moon, BarChart3 } from 'lucide-react';
 import Navbar from '@/components/ui/NavBar';
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [ratings, setRatings] = useState({
     mood: 4,
     productivity: 3,
     energy: 2
   });
+
+  // Protect the route - redirect if not authenticated
+  useEffect(() => {
+    if (status === 'loading') return; // Still loading
+    
+    if (status === 'unauthenticated' || !session) {
+      router.push('/login'); // Redirect to login page
+      return;
+    }
+  }, [session, status, router]);
 
   const currentDate = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -42,10 +54,21 @@ export default function ProfilePage() {
     </div>
   );
 
+  // Show loading while checking authentication
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="ml-3 text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated (will redirect)
+  if (status === 'unauthenticated' || !session) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Redirecting to login...</div>
       </div>
     );
   }
@@ -59,7 +82,7 @@ export default function ProfilePage() {
         {/* Greeting */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Good afternoon, {session?.user?.name || 'Amelia'}
+            Good afternoon, {session?.user?.name || session?.user?.email || 'User'}
           </h1>
           <p className="text-gray-600">{currentDate}</p>
         </div>

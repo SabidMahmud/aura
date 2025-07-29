@@ -10,6 +10,7 @@
 - Create API endpoints for AI models for suggestions.
 - Implement logic for generating basic insights from user data.
 - Facing issue with overboarding page loading.
+- Implementing the signup and signin logic for google signin.
 
 ## Frontend
 
