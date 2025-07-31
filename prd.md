@@ -242,6 +242,30 @@ This section outlines the core features and requirements for the initial release
 * **4.2.3:** The chart accurately visualizes the data comparison supporting the insight (e.g., "Average Mood on days with workout" vs. "Average Mood on days without workout").
 * **4.2.4:** The user can collapse the expanded view to return to the main list.
 
+---
+
+### **Epic 5: User Profile Management**
+* **Goal:** To allow users to view and update their personal information and preferences.
+
+**User Story 5.1: View Profile**
+> **As a** user, **I want to** view my profile information **so that** I can see my current settings and personal data.
+
+**Acceptance Criteria:**
+* **5.1.1:** A dedicated `/profile` page fetches and displays the user's profile information.
+* **5.1.2:** The profile page displays the user's name, email, timezone, goals, and activities.
+* **5.1.3:** The page includes a button or link to navigate to the edit profile page.
+
+**User Story 5.2: Edit Profile**
+> **As a** user, **I want to** edit my profile information **so that** I can keep my account up-to-date.
+
+**Acceptance Criteria:**
+* **5.2.1:** A dedicated `/editProfile` page allows the user to edit their profile information.
+* **5.2.2:** The user can update their name, timezone, goals, and activities.
+* **5.2.3:** The form is pre-filled with the user's current profile data.
+* **5.2.4:** WHEN the user submits the form, THEN the updated information is saved to the database and the user is redirected to the view profile page.
+
+
+
 ## **7. User Flow / Journey**
 
 1.  **Discovery & Sign-up:** A new user lands on the marketing page, understands the value proposition, and signs up with their Google account.
