@@ -202,12 +202,12 @@ export default function ProfilePage() {
             Good afternoon, {session?.user?.name || session?.user?.email || 'User'}
           </h1>
           <p className="text-gray-600">{currentDate}</p>
-          {/* ADD BACK: Debug info for development */}
+          {/* ADD BACK: Debug info for development
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-4 p-3 text-gray-600 bg-blue-50 rounded-lg text-sm">
               <strong>Debug:</strong> Onboarding Status: {session?.user?.isOnboardingComplete ? '✅ Complete' : '⏳ Pending'}
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Quick Log Section */}
