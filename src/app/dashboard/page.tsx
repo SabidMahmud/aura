@@ -23,11 +23,7 @@ export default function ProfilePage() {
     
     if (status === 'unauthenticated' || !session) {
       router.push('/login'); // Redirect to login page
-      return;
-    }
-  }, [session, status, router]);
-
-  // ADD BACK: Onboarding completion handling
+      return; } }, [session, status, router]); // ADD BACK: Onboarding completion handling
   useEffect(() => {
     const handleOnboardingComplete = async () => {
       const onboardingParam = searchParams.get('onboarding');
@@ -208,7 +204,7 @@ export default function ProfilePage() {
           <p className="text-gray-600">{currentDate}</p>
           {/* ADD BACK: Debug info for development */}
           {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm">
+            <div className="mt-4 p-3 text-gray-600 bg-blue-50 rounded-lg text-sm">
               <strong>Debug:</strong> Onboarding Status: {session?.user?.isOnboardingComplete ? '✅ Complete' : '⏳ Pending'}
             </div>
           )}

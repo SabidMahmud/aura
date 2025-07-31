@@ -29,129 +29,77 @@ export default function OnboardingPage() {
     setStep((prev) => prev - 1);
   };
 
-  // const handleFinish = async (finalData: any) => {
-  //   setLoading(true);
-  //   setError(null);
+  // Replace your handleFinish function with this simplified version:
 
-  //   try {
-  //     // Create a clean, serializable object with only the data we need
-  //     const cleanFormData = {
-  //       // Extract only serializable properties from formData
-  //       goal: (formData as any).goal || '',
-  //       timezone: (formData as any).timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-  //       // Add any other specific properties you need from formData
-  //       ...Object.keys(formData).reduce((acc, key) => {
-  //         const value = (formData as any)[key];
-  //         // Only include primitive values and arrays of primitives
-  //         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-  //           acc[key] = value;
-  //         } else if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
-  //           acc[key] = value;
-  //         }
-  //         return acc;
-  //       }, {} as any),
-  //       // Add the final step data
-  //       activities: finalData.activities || []
-  //     };
+const handleFinish = async (finalData: any) => {
+  setLoading(true);
+  setError(null);
 
-  //     console.log('Sending clean data:', cleanFormData); // Debug log
+  try {
+    const cleanFormData = {
+      goal: (formData as any).goal || '',
+      timezone: (formData as any).timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ...Object.keys(formData).reduce((acc, key) => {
+        const value = (formData as any)[key];
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          acc[key] = value;
+        } else if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as any),
+      activities: finalData.activities || []
+    };
 
-  //     const response = await fetch('/api/user/onboarding', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify(cleanFormData),
-  //     });
+    console.log('🚀 Starting onboarding completion process...');
+    console.log('Sending onboarding data:', cleanFormData);
 
-  //     if (!response.ok) {
-  //       const errorData = await response.json();
-  //       throw new Error(errorData.message || 'Failed to complete onboarding. Please try again.');
-  //     }
+    // Step 1: Complete onboarding via API (this updates the database)
+    const response = await fetch('/api/user/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cleanFormData),
+    });
 
-  //     const result = await response.json();
-  //     console.log('Onboarding completed successfully:', result);
-
-  //     // Reset loading state
-  //     setLoading(false);
-
-  //     // Wait a moment for the JWT token to be fully updated
-  //     console.log('Waiting for JWT token update...');
-  //     await new Promise(resolve => setTimeout(resolve, 500));
-
-  //     // Force a complete page refresh to ensure fresh JWT token
-  //     console.log('Redirecting to dashboard with fresh session...');
-  //     window.location.href = '/dashboard?onboarding=complete';
-
-  //   } catch (err) {
-  //     console.error('Onboarding error:', err);
-  //     setError(err instanceof Error ? err.message : 'An unknown error occurred');
-  //     setLoading(false);
-  //   }
-  // };
-
-  const handleFinish = async (finalData: any) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const cleanFormData = {
-        goal: (formData as any).goal || '',
-        timezone: (formData as any).timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        ...Object.keys(formData).reduce((acc, key) => {
-          const value = (formData as any)[key];
-          if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-            acc[key] = value;
-          } else if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
-            acc[key] = value;
-          }
-          return acc;
-        }, {} as any),
-        activities: finalData.activities || []
-      };
-
-      console.log('Sending onboarding data:', cleanFormData);
-
-      const response = await fetch('/api/user/onboarding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cleanFormData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to complete onboarding. Please try again.');
-      }
-
-      console.log('✅ Onboarding API completed successfully');
-
-      // Force NextAuth session to refresh
-      console.log('🔄 Forcing session refresh...');
-      try {
-        await update(); // This should trigger the JWT callback
-        console.log('✅ Session update triggered');
-      } catch (updateError) {
-        console.error('Session update error:', updateError);
-      }
-
-      // Wait for token refresh to propagate
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      setLoading(false);
-
-      // Navigate to dashboard
-      console.log('🚀 Redirecting to dashboard...');
-      router.push('/dashboard?onboarding=complete');
-
-    } catch (err) {
-      console.error('Onboarding error:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      setLoading(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to complete onboarding. Please try again.');
     }
-  };
+
+    console.log('✅ Onboarding API completed successfully - database updated');
+
+    // Step 2: Set bypass cookie for immediate middleware access
+    document.cookie = 'onboarding-complete=true; path=/; max-age=300; SameSite=Lax';
+    console.log('🍪 Bypass cookie set');
+
+    // Step 3: Force NextAuth session update with the new status
+    console.log('🔄 Calling update({ isOnboardingComplete: true }) to trigger JWT refresh...');
+    await update({ isOnboardingComplete: true });
+    console.log('✅ Session update called');
+
+    // Step 4: Small delay to ensure token propagation
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Step 5: Navigate to dashboard
+    console.log('🚀 Navigating to dashboard...');
+    router.replace('/dashboard?onboarding=complete');
+
+    setLoading(false);
+
+  } catch (err) {
+    console.error('❌ Onboarding error:', err);
+    setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    setLoading(false);
+  }
+};
 
   if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Loading session...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading session...</p>
+        </div>
       </div>
     );
   }
@@ -184,7 +132,23 @@ export default function OnboardingPage() {
 
         {/* Step Content */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm sm:p-10">
-          {error && <p className="mb-4 text-center text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          
+          {loading && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                <p className="text-sm text-blue-600">
+                  Completing your onboarding and setting up your account...
+                </p>
+              </div>
+            </div>
+          )}
+          
           {renderStep()}
         </div>
       </div>
