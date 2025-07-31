@@ -1,13 +1,16 @@
 'use client';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { User, Activity, Brain, Utensils, Moon, BarChart3 } from 'lucide-react';
 import Navbar from '@/components/ui/NavBar';
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession(); // Added 'update' here
   const router = useRouter();
+  const searchParams = useSearchParams(); // Added this
+  const [showWelcome, setShowWelcome] = useState(false); // Added this
+  const [isUpdatingSession, setIsUpdatingSession] = useState(false); // Added this
   const [ratings, setRatings] = useState({
     mood: 4,
     productivity: 3,
@@ -23,6 +26,91 @@ export default function ProfilePage() {
       return;
     }
   }, [session, status, router]);
+
+  // ADD BACK: Onboarding completion handling
+  useEffect(() => {
+    const handleOnboardingComplete = async () => {
+      const onboardingParam = searchParams.get('onboarding');
+      const verifyParam = searchParams.get('verify');
+      
+      if (onboardingParam === 'complete') {
+        console.log('🎉 Onboarding completion detected!');
+        setShowWelcome(true);
+        
+        // Clean up the bypass cookie since we're now on the dashboard
+        document.cookie = 'onboarding-complete=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        console.log('🧹 Cleaned up bypass cookie');
+        
+        // Update the session to ensure JWT has latest data
+        if (!session?.user?.isOnboardingComplete) {
+          console.log('🔄 Session still shows incomplete, forcing update...');
+          setIsUpdatingSession(true);
+          try {
+            await update();
+            console.log('✅ Session updated after onboarding');
+          } catch (error) {
+            console.error('❌ Failed to update session:', error);
+          } finally {
+            setIsUpdatingSession(false);
+          }
+        }
+        
+        // Clean up URL parameters
+        const url = new URL(window.location.href);
+        url.searchParams.delete('onboarding');
+        url.searchParams.delete('verify');
+        window.history.replaceState({}, '', url.pathname + url.search);
+      }
+      
+      if (verifyParam === 'true') {
+        console.log('🔍 Dashboard verification mode');
+        const url = new URL(window.location.href);
+        url.searchParams.delete('verify');
+        window.history.replaceState({}, '', url.pathname + url.search);
+      }
+    };
+
+    if (status === 'authenticated') {
+      handleOnboardingComplete();
+    }
+  }, [searchParams, session, status, update]);
+
+  // ADD BACK: Additional effect to handle session refresh when there's a mismatch
+  useEffect(() => {
+    const refreshSessionIfNeeded = async () => {
+      if (session?.user && 
+          !session.user.isOnboardingComplete && 
+          !searchParams.get('onboarding') && 
+          !isUpdatingSession) {
+        
+        console.log('🔍 Detected session mismatch - user on dashboard but session shows incomplete');
+        
+        try {
+          const response = await fetch('/api/user/onboarding-status');
+          const data = await response.json();
+          
+          if (data.success && data.isOnboardingComplete) {
+            console.log('📊 Database confirms onboarding is complete, refreshing session...');
+            setIsUpdatingSession(true);
+            await update();
+            console.log('✅ Session refreshed successfully');
+          }
+        } catch (error) {
+          console.error('❌ Failed to verify onboarding status:', error);
+        } finally {
+          setIsUpdatingSession(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(() => {
+      if (status === 'authenticated') {
+        refreshSessionIfNeeded();
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [session, status, searchParams, update, isUpdatingSession]);
 
   const currentDate = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -54,12 +142,16 @@ export default function ProfilePage() {
     </div>
   );
 
-  // Show loading while checking authentication
-  if (status === "loading") {
+  // Show loading while checking authentication OR updating session
+  if (status === "loading" || isUpdatingSession) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        <div className="ml-3 text-gray-600">Loading...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">
+            {isUpdatingSession ? 'Updating your session...' : 'Loading dashboard...'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -75,6 +167,35 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* ADD BACK: Welcome message */}
+      {showWelcome && (
+        <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-green-700">
+                🎉 Welcome to Aura! Your onboarding is complete and your account is all set up.
+              </p>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="text-green-400 hover:text-green-600"
+              >
+                <span className="sr-only">Dismiss</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Navbar/>
 
       {/* Main Content */}
@@ -85,6 +206,12 @@ export default function ProfilePage() {
             Good afternoon, {session?.user?.name || session?.user?.email || 'User'}
           </h1>
           <p className="text-gray-600">{currentDate}</p>
+          {/* ADD BACK: Debug info for development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm">
+              <strong>Debug:</strong> Onboarding Status: {session?.user?.isOnboardingComplete ? '✅ Complete' : '⏳ Pending'}
+            </div>
+          )}
         </div>
 
         {/* Quick Log Section */}
