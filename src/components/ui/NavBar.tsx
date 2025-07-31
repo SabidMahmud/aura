@@ -5,6 +5,8 @@ import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import GetStartedButton from './GetStartedButton';
 import Image from 'next/image';
+import Link from 'next/link';
+
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -94,13 +96,12 @@ export default function Navbar() {
                     <div className="px-4 py-2 text-sm text-gray-500 border-b border-gray-100">
                       {session?.user?.email}
                     </div>
-                    <a
-                      href="#"
+                    <Link href="/profile"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <Settings className="w-4 h-4 mr-2" />
                       Settings
-                    </a>
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
@@ -145,7 +146,7 @@ export default function Navbar() {
             <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
             <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">Support</a>
             {isLoggedIn && (
-              <a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">My Account</a>
+              <Link href="/(profile-details)/profile" className="text-gray-600 hover:text-gray-900 transition-colors">My Account</Link>
             )}
             
             <div className="mt-4 pt-4 border-t border-gray-100">
@@ -153,18 +154,22 @@ export default function Navbar() {
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2 text-gray-700">
                     {session?.user?.image ? (
+                      <Link href="/profile">
                       <Image src={session.user.image}
                         alt="Profile"
                         className="w-6 h-6 rounded-full">
 
                       </Image>
+                      </Link>
                     ) : (
                       <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                         <User className="w-3 h-3 text-white" />
                       </div>
                     )}
                     <span className="text-sm font-medium">
+                    <Link href="/profile">
                       {session?.user?.name || session?.user?.email || 'User'}
+                    </Link>
                     </span>
                   </div>
                   <button
