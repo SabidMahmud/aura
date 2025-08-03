@@ -122,6 +122,7 @@ export const authOptions: NextAuthOptions = {
             const newUser = await User.create({
               email: user.email,
               name: user.name,
+              username: user.email?.split('@')[0].replace(/[^a-zA-Z0-9_]/g, ''),
               googleId: user.id,
               avatar: profile?.picture ?? user.image,
               lastLoginAt: new Date(),
