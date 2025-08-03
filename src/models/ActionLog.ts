@@ -1,10 +1,10 @@
-import mongoose, { Document, Schema, Types } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
 // Source type for action logging
 export type ActionSource = 'manual' | 'journal' | 'api';
 
-// TypeScript interface for ActionLog document
-export interface IActionLog extends Document {
+// Base interface for the ActionLog data
+export interface IActionLogBase {
   userId: Types.ObjectId;
   tagId: Types.ObjectId;
   loggedAt: Date;
@@ -19,8 +19,11 @@ export interface IActionLog extends Document {
   updatedAt: Date;
 }
 
+// TypeScript interface for ActionLog document
+export interface IActionLog extends IActionLogBase, Document {}
+
 // Static methods interface
-export interface IActionLogModel extends mongoose.Model<IActionLog> {
+export interface IActionLogModel extends Model<IActionLog> {
   getActionsForDateRange(userId: Types.ObjectId, startDate: string, endDate: string): Promise<IActionLog[]>;
   getDailyActionCounts(userId: Types.ObjectId, days?: number): Promise<any[]>;
 }
@@ -96,7 +99,7 @@ actionLogSchema.index({ tagId: 1, date: -1 });
 actionLogSchema.index({ userId: 1, date: 1, tagId: 1 });
 
 // Pre-save middleware to set the date field
-actionLogSchema.pre('save', function(this: IActionLog, next) {
+actionLogSchema.pre('save', function(next) {
   if (this.loggedAt) {
     // Convert loggedAt to YYYY-MM-DD format
     const date = new Date(this.loggedAt);
@@ -106,8 +109,7 @@ actionLogSchema.pre('save', function(this: IActionLog, next) {
 });
 
 // Static method to get actions for a date range
-actionLogSchema.statics.getActionsForDateRange = function(
-  this: IActionLogModel,
+actionLogSchema.statics.getActionsForDateRange = async function(
   userId: Types.ObjectId,
   startDate: string,
   endDate: string
@@ -122,8 +124,7 @@ actionLogSchema.statics.getActionsForDateRange = function(
 };
 
 // Static method to get daily action counts
-actionLogSchema.statics.getDailyActionCounts = function(
-  this: IActionLogModel,
+actionLogSchema.statics.getDailyActionCounts = async function(
   userId: Types.ObjectId,
   days: number = 30
 ): Promise<any[]> {
@@ -152,4 +153,7 @@ actionLogSchema.statics.getDailyActionCounts = function(
 };
 
 // Export the model
-export default mongoose.models.ActionLog || mongoose.model<IActionLog, IActionLogModel>('ActionLog', actionLogSchema);
+const ActionLog = (mongoose.models.ActionLog as IActionLogModel) || 
+  mongoose.model<IActionLog, IActionLogModel>('ActionLog', actionLogSchema);
+
+export default ActionLog;
