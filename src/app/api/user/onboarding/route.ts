@@ -1,7 +1,7 @@
 // src/app/api/user/onboarding/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth';
 import User from '@/models/User';
 import Metric from '@/models/Metric';
 import Tag from '@/models/Tag';

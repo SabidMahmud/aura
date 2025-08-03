@@ -1,7 +1,7 @@
 // app/api/user/onboarding-status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth';
 import User from '@/models/User';
 import dbConnect from '@/lib/db';
 
