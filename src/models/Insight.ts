@@ -1,4 +1,4 @@
-import mongoose, { Schema, Types } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
 // Type definitions
 export type CorrelationType = 'positive' | 'negative' | 'neutral';
@@ -15,8 +15,8 @@ export interface IStatisticalData {
   analysisEndDate: string;
 }
 
-// TypeScript interface for Insight document
-export interface IInsight {
+// Base interface for the Insight data
+export interface IInsightBase {
   userId: Types.ObjectId;
   tagId: Types.ObjectId;
   metricId: Types.ObjectId;
@@ -35,15 +35,18 @@ export interface IInsight {
   categories: InsightCategory[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+// TypeScript interface for Insight document
+export interface IInsight extends IInsightBase, Document {
   correlationDescription: string; // virtual field
   markAsRead(): Promise<IInsight>;
   dismiss(): Promise<IInsight>;
   getImpactDescription(): string;
-  [key: string]: any; // Allow virtuals
 }
 
 // Static methods interface
-export interface IInsightModel extends mongoose.Model<IInsight> {
+export interface IInsightModel extends Model<IInsight> {
   getInsightsForUser(userId: Types.ObjectId, status?: InsightStatus): Promise<IInsight[]>;
   getUnreadCount(userId: Types.ObjectId): Promise<number>;
 }
@@ -59,7 +62,7 @@ const statisticalDataSchema = new Schema({
 }, { _id: false });
 
 // Insight schema definition
-const insightSchema = new Schema({
+const insightSchema = new Schema<IInsight>({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -157,8 +160,7 @@ insightSchema.index({ userId: 1, isRead: 1 });
 insightSchema.index({ userId: 1, tagId: 1, metricId: 1, correlationType: 1 }, { unique: true });
 
 // Static method to get insights for user
-insightSchema.statics.getInsightsForUser = function(
-  this: IInsightModel,
+insightSchema.statics.getInsightsForUser = async function(
   userId: Types.ObjectId,
   status: InsightStatus = 'active'
 ): Promise<IInsight[]> {
@@ -169,28 +171,27 @@ insightSchema.statics.getInsightsForUser = function(
 };
 
 // Static method to get unread insights count
-insightSchema.statics.getUnreadCount = function(
-  this: IInsightModel,
+insightSchema.statics.getUnreadCount = async function(
   userId: Types.ObjectId
 ): Promise<number> {
   return this.countDocuments({ userId, isRead: false, status: 'active' });
 };
 
 // Instance method to mark as read
-insightSchema.methods.markAsRead = function(this: IInsight): Promise<IInsight> {
+insightSchema.methods.markAsRead = function(): Promise<IInsight> {
   this.isRead = true;
   this.readAt = new Date();
   return this.save();
 };
 
 // Instance method to dismiss insight
-insightSchema.methods.dismiss = function(this: IInsight): Promise<IInsight> {
+insightSchema.methods.dismiss = function(): Promise<IInsight> {
   this.status = 'dismissed';
   return this.save();
 };
 
 // Instance method to get impact description
-insightSchema.methods.getImpactDescription = function(this: IInsight): string {
+insightSchema.methods.getImpactDescription = function(): string {
   const diff = Math.abs(this.statisticalData.avgWithTag - this.statisticalData.avgWithoutTag);
   const percentage = ((diff / this.statisticalData.avgWithoutTag) * 100).toFixed(1);
   
@@ -203,7 +204,7 @@ insightSchema.methods.getImpactDescription = function(this: IInsight): string {
 };
 
 // Virtual for correlation description
-insightSchema.virtual('correlationDescription').get(function(this: IInsight) {
+insightSchema.virtual('correlationDescription').get(function() {
   const strength = this.correlationStrength;
   if (strength >= 0.7) return 'Strong';
   if (strength >= 0.5) return 'Moderate';
@@ -215,4 +216,7 @@ insightSchema.virtual('correlationDescription').get(function(this: IInsight) {
 insightSchema.set('toJSON', { virtuals: true });
 
 // Export the model
-export default (mongoose.models.Insight as unknown as IInsightModel) || (mongoose.model('Insight', insightSchema) as unknown as IInsightModel);
+const Insight = (mongoose.models.Insight as IInsightModel) || 
+  mongoose.model<IInsight, IInsightModel>('Insight', insightSchema);
+
+export default Insight;

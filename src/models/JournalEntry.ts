@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, Types } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
 // Type definitions
 export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
@@ -34,8 +34,8 @@ export interface IProcessingError {
   timestamp: Date;
 }
 
-// TypeScript interface for JournalEntry document
-export interface IJournalEntry extends Document {
+// Base interface for the JournalEntry data
+export interface IJournalEntryBase {
   userId: Types.ObjectId;
   content: string;
   date: string;
@@ -50,6 +50,10 @@ export interface IJournalEntry extends Document {
   wordCount: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// TypeScript interface for JournalEntry document
+export interface IJournalEntry extends IJournalEntryBase, Document {
   processingStatusDisplay: string; // virtual field
   markAsProcessing(): Promise<IJournalEntry>;
   markProcessingCompleted(extractedTags: IExtractedTag[], aiResponse: IAIResponse): Promise<IJournalEntry>;
@@ -58,7 +62,7 @@ export interface IJournalEntry extends Document {
 }
 
 // Static methods interface
-export interface IJournalEntryModel extends mongoose.Model<IJournalEntry> {
+export interface IJournalEntryModel extends Model<IJournalEntry> {
   getEntriesForDateRange(userId: Types.ObjectId, startDate: string, endDate: string): Promise<IJournalEntry[]>;
   getPendingProcessing(): Promise<IJournalEntry[]>;
 }
@@ -165,7 +169,7 @@ journalEntrySchema.index({ userId: 1, aiProcessingStatus: 1 });
 journalEntrySchema.index({ content: 'text' });
 
 // Pre-save middleware to calculate word count and set date
-journalEntrySchema.pre('save', function(this: IJournalEntry, next) {
+journalEntrySchema.pre('save', function(next) {
   // Calculate word count
   this.wordCount = this.content.trim().split(/\s+/).length;
   
@@ -178,8 +182,7 @@ journalEntrySchema.pre('save', function(this: IJournalEntry, next) {
 });
 
 // Static method to get entries for date range
-journalEntrySchema.statics.getEntriesForDateRange = function(
-  this: IJournalEntryModel,
+journalEntrySchema.statics.getEntriesForDateRange = async function(
   userId: Types.ObjectId,
   startDate: string,
   endDate: string
@@ -194,23 +197,20 @@ journalEntrySchema.statics.getEntriesForDateRange = function(
 };
 
 // Static method to get entries pending AI processing
-journalEntrySchema.statics.getPendingProcessing = function(
-  this: IJournalEntryModel
-): Promise<IJournalEntry[]> {
+journalEntrySchema.statics.getPendingProcessing = async function(): Promise<IJournalEntry[]> {
   return this.find({
     aiProcessingStatus: { $in: ['pending', 'processing'] }
   }).sort({ entryDate: 1 });
 };
 
 // Instance method to mark as processing
-journalEntrySchema.methods.markAsProcessing = function(this: IJournalEntry): Promise<IJournalEntry> {
+journalEntrySchema.methods.markAsProcessing = function(): Promise<IJournalEntry> {
   this.aiProcessingStatus = 'processing';
   return this.save();
 };
 
 // Instance method to mark processing as completed
 journalEntrySchema.methods.markProcessingCompleted = function(
-  this: IJournalEntry,
   extractedTags: IExtractedTag[],
   aiResponse: IAIResponse
 ): Promise<IJournalEntry> {
@@ -222,7 +222,6 @@ journalEntrySchema.methods.markProcessingCompleted = function(
 
 // Instance method to mark processing as failed
 journalEntrySchema.methods.markProcessingFailed = function(
-  this: IJournalEntry,
   error: Error
 ): Promise<IJournalEntry> {
   this.aiProcessingStatus = 'failed';
@@ -236,7 +235,6 @@ journalEntrySchema.methods.markProcessingFailed = function(
 
 // Instance method to get summary
 journalEntrySchema.methods.getSummary = function(
-  this: IJournalEntry,
   maxLength: number = 100
 ): string {
   if (this.content.length <= maxLength) {
@@ -246,7 +244,7 @@ journalEntrySchema.methods.getSummary = function(
 };
 
 // Virtual for getting readable processing status
-journalEntrySchema.virtual('processingStatusDisplay').get(function(this: IJournalEntry) {
+journalEntrySchema.virtual('processingStatusDisplay').get(function() {
   const statusMap = {
     'pending': 'Waiting for processing',
     'processing': 'Analyzing entry...',
@@ -260,4 +258,7 @@ journalEntrySchema.virtual('processingStatusDisplay').get(function(this: IJourna
 journalEntrySchema.set('toJSON', { virtuals: true });
 
 // Export the model
-export default mongoose.models.JournalEntry || mongoose.model<IJournalEntry, IJournalEntryModel>('JournalEntry', journalEntrySchema);
+const JournalEntry = (mongoose.models.JournalEntry as IJournalEntryModel) || 
+  mongoose.model<IJournalEntry, IJournalEntryModel>('JournalEntry', journalEntrySchema);
+
+export default JournalEntry;

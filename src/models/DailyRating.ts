@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, Types } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
 // Interface for individual rating
 export interface IRating {
@@ -7,8 +7,8 @@ export interface IRating {
   notes?: string;
 }
 
-// TypeScript interface for DailyRating document
-export interface IDailyRating extends Document {
+// Base interface for the DailyRating data
+export interface IDailyRatingBase {
   userId: Types.ObjectId;
   date: string;
   ratings: Map<string, IRating>;
@@ -20,12 +20,16 @@ export interface IDailyRating extends Document {
   sleepHours?: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// TypeScript interface for DailyRating document
+export interface IDailyRating extends IDailyRatingBase, Document {
   getRatingForMetric(metricId: Types.ObjectId): IRating | undefined;
   setRatingForMetric(metricId: Types.ObjectId, value: number, notes?: string): void;
 }
 
 // Static methods interface
-export interface IDailyRatingModel extends mongoose.Model<IDailyRating> {
+export interface IDailyRatingModel extends Model<IDailyRating> {
   getRatingsForDateRange(userId: Types.ObjectId, startDate: string, endDate: string): Promise<IDailyRating[]>;
   getAverageRatings(userId: Types.ObjectId, metricId: Types.ObjectId, days?: number): Promise<any[]>;
 }
@@ -113,8 +117,7 @@ dailyRatingSchema.index({ userId: 1, date: -1 });
 dailyRatingSchema.index({ userId: 1, submittedAt: -1 });
 
 // Static method to get ratings for a date range
-dailyRatingSchema.statics.getRatingsForDateRange = function(
-  this: IDailyRatingModel,
+dailyRatingSchema.statics.getRatingsForDateRange = async function(
   userId: Types.ObjectId,
   startDate: string,
   endDate: string
@@ -129,8 +132,7 @@ dailyRatingSchema.statics.getRatingsForDateRange = function(
 };
 
 // Static method to get average ratings for metrics
-dailyRatingSchema.statics.getAverageRatings = function(
-  this: IDailyRatingModel,
+dailyRatingSchema.statics.getAverageRatings = async function(
   userId: Types.ObjectId,
   metricId: Types.ObjectId,
   days: number = 30
@@ -173,7 +175,6 @@ dailyRatingSchema.statics.getAverageRatings = function(
 
 // Instance method to get rating for a specific metric
 dailyRatingSchema.methods.getRatingForMetric = function(
-  this: IDailyRating,
   metricId: Types.ObjectId
 ): IRating | undefined {
   const metricIdStr = metricId.toString();
@@ -182,7 +183,6 @@ dailyRatingSchema.methods.getRatingForMetric = function(
 
 // Instance method to set rating for a specific metric
 dailyRatingSchema.methods.setRatingForMetric = function(
-  this: IDailyRating,
   metricId: Types.ObjectId,
   value: number,
   notes: string = ''
@@ -196,4 +196,7 @@ dailyRatingSchema.methods.setRatingForMetric = function(
 };
 
 // Export the model
-export default mongoose.models.DailyRating || mongoose.model<IDailyRating, IDailyRatingModel>('DailyRating', dailyRatingSchema);
+const DailyRating = (mongoose.models.DailyRating as IDailyRatingModel) || 
+  mongoose.model<IDailyRating, IDailyRatingModel>('DailyRating', dailyRatingSchema);
+
+export default DailyRating;
