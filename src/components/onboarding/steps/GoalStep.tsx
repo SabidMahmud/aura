@@ -1,8 +1,6 @@
-// components/onboarding/GoalsStep.tsx
+// components/onboarding/GoalStep.tsx
 'use client';
-
 import { useState } from 'react';
-
 interface GoalsStepProps {
   onNext: (data: { goal: string }) => void;
 }
@@ -13,7 +11,7 @@ export default function GoalsStep({ onNext }: GoalsStepProps) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900">What's your primary goal?</h2>
+      <h2 className="text-2xl font-bold text-gray-900">What&apos;s your primary goal?</h2>
       <p className="mt-2 text-gray-500">This will help us personalize your experience.</p>
       <div className="mt-6 space-y-4">
         {goals.map((g) => (
