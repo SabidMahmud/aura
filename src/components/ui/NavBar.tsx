@@ -1,11 +1,12 @@
 "use client"; // This is the most important line!
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import GetStartedButton from './GetStartedButton';
 import Image from 'next/image';
 import Link from 'next/link';
+import { is } from 'zod/locales';
 
 
 export default function Navbar() {
@@ -21,6 +22,17 @@ export default function Navbar() {
     signOut({callbackUrl: '/login'});
   };
 
+
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+    setIsUserMenuOpen(!isUserMenuOpen); // Close user menu when mobile menu is toggled
+    if (isMobileMenuOpen) {
+      setIsUserMenuOpen(false); // Close user menu when mobile menu is toggled
+    }
+  };
+useEffect(() => {
+    console.log('Navbar mounted');
+  }, [ isUserMenuOpen]);
   // Show loading state while session is being fetched
   if (isLoading) {
     return (
@@ -64,8 +76,10 @@ export default function Navbar() {
           {isLoggedIn ? (
             <div className="relative">
               <button
-                onClick={() => {setIsUserMenuOpen(!isUserMenuOpen); update()}}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+                onClick={() => {
+                  setIsUserMenuOpen(!isUserMenuOpen);
+                }}
+                className="flex items-center space-x-2 text-gray-600"
                 aria-label="User menu"
               >
                 {session?.user?.image ? (

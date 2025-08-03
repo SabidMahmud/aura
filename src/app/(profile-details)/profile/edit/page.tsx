@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User, Mail, Clock, Save, ArrowLeft, AlertCircle, Loader2, Camera } from 'lucide-react';
 import Navbar from '@/components/ui/NavBar';
+import TimezoneSelector from '@/components/ui/TimezoneSelector';
 
 // Define the type for the user's profile data that can be edited
 interface EditableProfile {
@@ -283,11 +284,9 @@ const EditProfilePage = () => {
                 </label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
+                  <TimezoneSelector
                     id="timezone"
                     name="timezone"
-                    type="text"
-                    placeholder="e.g., America/New_York"
                     value={profile.timezone}
                     onChange={handleChange}
                     className="block w-full appearance-none rounded-md border border-gray-300 pl-10 pr-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-gray-900 focus:outline-none focus:ring-gray-900 sm:text-sm"
