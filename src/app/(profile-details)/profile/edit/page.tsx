@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Clock, Save, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { User, Mail, Clock, Save, ArrowLeft, AlertCircle, Loader2, Camera } from 'lucide-react';
 import Navbar from '@/components/ui/NavBar';
 
 // Define the type for the user's profile data that can be edited
@@ -11,7 +12,8 @@ interface EditableProfile {
   name: string;
   username: string;
   timezone: string;
-  email: string; // Keep email for display, but it won't be editable
+  email: string; 
+  avatar?: string;
 }
 
 const EditProfilePage = () => {
@@ -20,6 +22,9 @@ const EditProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   // Fetch current profile data
@@ -37,8 +42,11 @@ const EditProfilePage = () => {
         }
 
         if (result.success) {
-          const { name, username, timezone, email } = result.data;
-          setProfile({ name, username: username || '', timezone, email });
+          const { name, username, timezone, email, avatar } = result.data;
+          setProfile({ name, username: username || '', timezone, email, avatar });
+          if (avatar) {
+            setAvatarPreview(avatar);
+          }
         } else {
           throw new Error('Invalid response format');
         }
@@ -60,6 +68,14 @@ const EditProfilePage = () => {
     }
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +86,24 @@ const EditProfilePage = () => {
     setSuccess(null);
 
     try {
+      let avatarUrl = profile.avatar;
+
+      if (avatarFile) {
+        const response = await fetch(`/api/avatar/upload?filename=${avatarFile.name}`,
+          {
+            method: 'POST',
+            body: avatarFile,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to upload avatar');
+        }
+
+        const newBlob = await response.json();
+        avatarUrl = newBlob.url;
+      }
+
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
@@ -79,6 +113,7 @@ const EditProfilePage = () => {
           name: profile.name,
           username: profile.username,
           timezone: profile.timezone,
+          avatar: avatarUrl,
         }),
       });
 
@@ -90,9 +125,9 @@ const EditProfilePage = () => {
 
       if (result.success) {
         setSuccess('Profile updated successfully!');
-        // Optionally, redirect after a short delay
         setTimeout(() => {
           router.push('/profile');
+          router.refresh();
         }, 1500);
       } else {
         throw new Error(result.message || 'An unknown error occurred');
@@ -154,6 +189,37 @@ const EditProfilePage = () => {
 
           {profile && (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Avatar Field */}
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <Image
+                    src={avatarPreview || '/default-avatar.svg'} // Fallback to a default avatar
+                    alt="Avatar Preview"
+                    width={96}
+                    height={96}
+                    className="rounded-full object-cover w-24 h-24 bg-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 bg-white rounded-full p-2 border border-gray-300 hover:bg-gray-100 transition-colors"
+                  >
+                    <Camera className="w-5 h-5 text-gray-600" />
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAvatarChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">{profile.name}</h2>
+                  <p className="text-gray-500">@{profile.username || 'username'}</p>
+                </div>
+              </div>
+
               {/* Name Field */}
               <div className="space-y-2">
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">

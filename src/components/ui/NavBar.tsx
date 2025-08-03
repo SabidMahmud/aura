@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 
 export default function Navbar() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -64,8 +64,8 @@ export default function Navbar() {
           {isLoggedIn ? (
             <div className="relative">
               <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+                onClick={() => {setIsUserMenuOpen(!isUserMenuOpen); update()}}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
                 aria-label="User menu"
               >
                 {session?.user?.image ? (
@@ -76,6 +76,8 @@ export default function Navbar() {
                   // />
                   <Image src={session.user.image}
                     alt="Profile"
+                    width={32}
+                    height={32}
                     className="w-8 h-8 rounded-full">
 
                   </Image>
@@ -157,6 +159,8 @@ export default function Navbar() {
                       <Link href="/profile">
                       <Image src={session.user.image}
                         alt="Profile"
+                        width={24}
+                        height={24}
                         className="w-6 h-6 rounded-full">
 
                       </Image>

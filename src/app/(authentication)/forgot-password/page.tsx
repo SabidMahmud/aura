@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
         <div className="my-auto">
             <h1 className="text-4xl font-bold tracking-tighter">Aura</h1>
             <p className="mt-4 text-lg text-gray-300">
-            "The best way to predict the future is to create it."
+            &quot;The best way to predict the future is to create it.&quot;
             </p>
         </div>
         <div className="flex-shrink-0 mt-auto">
@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">Forgot Password?</h1>
             <p className="mt-2 text-gray-500">
-              No worries, we'll send you reset instructions.
+              No worries, we&apos;ll send you reset instructions.
             </p>
           </div>
 

@@ -12,3 +12,5 @@ next/
 *.bak
 
 
+.vercel
+.env*.local
