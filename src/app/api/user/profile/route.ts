@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db'; // Adjust path to your DB connection
-import User, {} from '@/models/User';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import User from '@/models/User';
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth';
 
 
 // Type definitions for the API response

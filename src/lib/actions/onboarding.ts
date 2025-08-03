@@ -4,10 +4,11 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { promises as fs } from 'fs';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+// import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/db';
 import Metric from '@/models/Metric';
 import Tag from '@/models/Tag';
+import { authOptions } from '@/app/api/auth/[...nextauth]/auth';
 
 const metricsSchema = z.object({
   metrics: z.array(z.string()).min(1, 'Please add at least one metric.'),
@@ -88,7 +89,7 @@ export async function saveTags(prevState: any, formData: FormData) {
 
     // Update onboarding.json to mark onboarding as complete for this user
     const onboardingFilePath = process.cwd() + '/src/onboarding.json';
-    let onboardingData = {};
+    let onboardingData: { [key: string]: { onboardingComplete: boolean } } = {};
     try {
       const fileContent = await fs.readFile(onboardingFilePath, 'utf-8');
       onboardingData = JSON.parse(fileContent);
