@@ -183,7 +183,7 @@ const ProfilePage = () => {
                             <div className="relative">
                                 <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-2xl font-bold">
                                     {profile.avatar ? (
-                                        <Image src={profile.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                                        <Image src={profile.avatar} alt="Profile" width={96} height={96} className="w-full h-full rounded-full object-cover" />
                                     ) : (
                                         getInitials(profile.displayName)
                                     )}

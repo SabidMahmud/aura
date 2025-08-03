@@ -19,7 +19,7 @@ export async function middleware(req: NextRequest) {
 
   // Define your auth routes and protected routes
   const authRoutes = ['/login', '/signup', '/register'];
-  const protectedRoutes = ['/dashboard', '/profile', '/settings'];
+  const protectedRoutes = ['/dashboard', '/profile', '/settings', '/profile/edit', '/onboarding'];
   
   // --- LOGIC FOR AUTHENTICATED USERS ---
   if (isAuthenticated) {
@@ -53,9 +53,17 @@ export async function middleware(req: NextRequest) {
     if (!isOnboardingComplete && pathname === '/dashboard') {
       console.log('🔍 Token says onboarding incomplete, checking for bypass...');
       
-      // If no bypass cookie, redirect to onboarding
+      // If no bypass cookie, check if this might be a fresh session issue
       if (!hasOnboardingBypass) {
-        console.log('🔄 No bypass cookie, redirecting to onboarding');
+        // Check if there are URL parameters suggesting recent onboarding completion
+        const hasOnboardingParam = req.nextUrl.searchParams.get('onboarding');
+        
+        if (hasOnboardingParam === 'complete') {
+          console.log('✅ URL indicates recent onboarding completion, allowing access');
+          return NextResponse.next();
+        }
+        
+        console.log('🔄 No bypass cookie or completion indicator, redirecting to onboarding');
         return NextResponse.redirect(new URL('/onboarding', req.url));
       }
     }
