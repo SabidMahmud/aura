@@ -51,7 +51,6 @@ export default function ActivitiesStep({ onFinish, prevStep, isLoading }: Activi
     }
   };
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removeActivity = (activity: string) => {
     setActivities(prev => prev.filter(a => a !== activity));
   };
