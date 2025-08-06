@@ -29,39 +29,28 @@ const ChangePasswordForm = () => {
 
     setSaving(true);
 
-    // Mock API call for now
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
 
-    // Replace with actual API call to change password
-    // try {
-    //   const response = await fetch('/api/user/change-password', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ oldPassword, newPassword }),
-    //   });
+      const result = await response.json();
 
-    //   const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to change password');
+      }
 
-    //   if (!response.ok) {
-    //     throw new Error(result.error || 'Failed to change password');
-    //   }
-
-    //   setSuccess('Password changed successfully!');
-    //   setOldPassword('');
-    //   setNewPassword('');
-    //   setConfirmPassword('');
-    // } catch (err) {
-    //   setError(err.message);
-    // } finally {
-    //   setSaving(false);
-    // }
-
-    // Mock success for now
-    setSuccess('Password changed successfully!');
-    setOldPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setSaving(false);
+      setSuccess('Password changed successfully!');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
