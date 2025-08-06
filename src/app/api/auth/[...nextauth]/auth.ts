@@ -31,6 +31,7 @@ declare module 'next-auth' {
       username?: string | null;
       isOnboardingComplete?: boolean;
       timezone?: string | null;
+      ispasswordexist?: boolean; //field to check if password exists
     };
   }
 
@@ -213,6 +214,7 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username ?? null; // Fallback to null
         session.user.isOnboardingComplete = token.isOnboardingComplete ?? false; // Fallback to false
         session.user.timezone = token.timezone ?? null; // Fallback to null
+        session.user.ispasswordexist = !!token.password; // Check if password exists
       }
       return session;
     }

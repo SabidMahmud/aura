@@ -1,4 +1,4 @@
-// app/api/profile/route.ts
+// app/api/user/profile/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db'; // Adjust path to your DB connection
@@ -29,6 +29,7 @@ interface ProfileResponse {
   avatar?: string;
   timezone: string;
   displayName: string;
+  googleId?: string;
   joinDate: string;
   lastLoginAt?: string;
   isActive: boolean;
@@ -45,6 +46,7 @@ interface ProfileResponse {
     termsAccepted: boolean;
     privacyPolicyAccepted: boolean;
   };
+  isPasswordExist: boolean; // Include password existence status
 }
 
 // Helper function to categorize activities (you can customize this logic)
@@ -109,7 +111,7 @@ export async function GET() {
     // Find user by email from session
     const user = await User.findOne({
       email: session.user.email
-    }).select('-password'); // Exclude password field
+    }); // Exclude password field
 
     if (!user) {
       return NextResponse.json(
@@ -134,6 +136,7 @@ export async function GET() {
       accountAge: Math.floor((Date.now() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24))
     };
 
+    const isPasswordExist = !!user.password; // Check if password exists
     // Prepare response data
     const profileData: ProfileResponse = {
       id: user._id.toString(),
@@ -158,7 +161,8 @@ export async function GET() {
         privacyLevel: 'Public', // You might want to add this to your user model
         termsAccepted: !!user.acceptedTermsAt,
         privacyPolicyAccepted: !!user.privacyPolicyAcceptedAt
-      }
+      },
+      isPasswordExist: isPasswordExist // Include password existence status
     };
 
     // Update last login time
